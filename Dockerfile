@@ -17,14 +17,12 @@ ENV NODE_ENV=production
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev \
- && useradd -u 1000 -m connector \
- && chown -R 1000:1000 /app
+RUN npm ci --omit=dev && chown -R node:node /app
 
-COPY --from=build --chown=1000:1000 /app/dist ./dist
-COPY --chown=1000:1000 README.md ./
+COPY --from=build --chown=node:node /app/dist ./dist
+COPY --chown=node:node README.md ./
 
-USER 1000:1000
+USER node
 
 ENTRYPOINT ["node", "dist/cli.js"]
 CMD ["worker", "--bootstrap=/app/bootstrap.js"]
