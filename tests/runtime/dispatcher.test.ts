@@ -115,7 +115,7 @@ describe("Dispatcher", () => {
     expect(body.echoed).toBe("hello");
   });
 
-  it("replies tool_not_found for an unknown tool key", async () => {
+  it("replies with 'unknown tool' for an unknown tool key", async () => {
     const client = makeClient();
     const dispatcher = new Dispatcher(makeTools(EchoTool), client);
     dispatcher.dispatch(makeReq("test.missing", "{}"));
@@ -123,11 +123,11 @@ describe("Dispatcher", () => {
 
     expect(client.sent).toHaveLength(1);
     const resp = client.sent[0]?.toolCallResponse;
-    expect(resp?.error).toMatch(/tool_not_found/);
+    expect(resp?.error).toMatch(/unknown tool/);
     expect(resp?.error).toMatch(/test\.missing/);
   });
 
-  it("replies validation_error for invalid args", async () => {
+  it("replies with tool_call_invalid_args for invalid args", async () => {
     const client = makeClient();
     const dispatcher = new Dispatcher(makeTools(EchoTool), client);
     // Missing required field 'text'
@@ -136,10 +136,10 @@ describe("Dispatcher", () => {
 
     expect(client.sent).toHaveLength(1);
     const resp = client.sent[0]?.toolCallResponse;
-    expect(resp?.error).toMatch(/validation_error/);
+    expect(resp?.error).toMatch(/tool_call_invalid_args/);
   });
 
-  it("replies handler_error when the handler throws", async () => {
+  it("replies with the thrown message when the handler throws", async () => {
     const client = makeClient();
     const dispatcher = new Dispatcher(makeTools(CrashTool), client);
     dispatcher.dispatch(makeReq("test.crash", '{"reason":"boom"}'));
@@ -147,7 +147,6 @@ describe("Dispatcher", () => {
 
     expect(client.sent).toHaveLength(1);
     const resp = client.sent[0]?.toolCallResponse;
-    expect(resp?.error).toMatch(/handler_error/);
     expect(resp?.error).toMatch(/boom/);
   });
 

@@ -10,7 +10,6 @@
 import type { ConnectorMsg, ToolCallRequest } from "../proto/vested/v1/connector_hub.ts";
 import type { ToolContext, ToolDeclaration } from "../tool.ts";
 import { validateArgs } from "../tool.ts";
-import { ToolValidationError } from "../errors.ts";
 
 export class Dispatcher {
   constructor(
@@ -30,7 +29,7 @@ export class Dispatcher {
   private async _handle(req: ToolCallRequest): Promise<void> {
     const decl = this.tools.get(req.toolKey);
     if (!decl) {
-      this._replyError(req.invocationId, "tool_not_found", `unknown tool ${req.toolKey}`);
+      this._replyError(req.invocationId, `unknown tool: ${req.toolKey}`);
       return;
     }
 
@@ -38,11 +37,8 @@ export class Dispatcher {
     try {
       args = validateArgs(decl, req.argsJson as Buffer);
     } catch (e) {
-      if (e instanceof ToolValidationError) {
-        this._replyError(req.invocationId, "validation_error", e.message);
-      } else {
-        this._replyError(req.invocationId, "validation_error", String(e));
-      }
+      const message = e instanceof Error ? e.message : String(e);
+      this._replyError(req.invocationId, `tool_call_invalid_args: ${message}`);
       return;
     }
 
@@ -60,11 +56,8 @@ export class Dispatcher {
       const result = await handler.handle(args, ctx);
       this._replyOk(req.invocationId, JSON.stringify(result));
     } catch (e) {
-      this._replyError(
-        req.invocationId,
-        "handler_error",
-        e instanceof Error ? (e.message || String(e)) : String(e),
-      );
+      const message = e instanceof Error ? e.message || String(e) : String(e);
+      this._replyError(req.invocationId, message);
     }
   }
 
@@ -79,13 +72,11 @@ export class Dispatcher {
     this.client.send(msg);
   }
 
-  private _replyError(invocationId: string, _code: string, message: string): void {
-    // Wire protocol uses a single `error` string field (not an object).
-    // We embed the code as a prefix so callers can pattern-match it.
+  private _replyError(invocationId: string, message: string): void {
     const msg: ConnectorMsg = {
       toolCallResponse: {
         invocationId,
-        error: `${_code}: ${message}`,
+        error: message,
         durationMs: 0,
       },
     };
