@@ -14,6 +14,7 @@
 
 import { Backoff } from "./backoff.ts";
 import { Daemon, type AppLike } from "./daemon.ts";
+import { Dispatcher } from "./dispatcher.ts";
 import { GrpcClient } from "./grpc-client.ts";
 import { SignalHandler } from "./signals.ts";
 import { TokenError } from "../errors.ts";
@@ -38,7 +39,8 @@ export async function runSupervised(
         const client = new GrpcClient(host, port, token, insecure);
         await client.connect();
         try {
-          const daemon = new Daemon(app, client, signals);
+          const dispatcher = new Dispatcher(app.tools, client);
+          const daemon = new Daemon(app, client, signals, dispatcher);
           exitCode = await daemon.run();
           handshakeCompleted = daemon.handshakeCompleted;
         } finally {

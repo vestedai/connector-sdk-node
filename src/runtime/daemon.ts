@@ -18,6 +18,7 @@ import type {
 } from "../proto/vested/v1/connector_hub.ts";
 import type { ToolDeclaration } from "../tool.ts";
 import { computeFingerprint } from "./fingerprint.ts";
+import type { Dispatcher } from "./dispatcher.ts";
 import type { GrpcClient } from "./grpc-client.ts";
 import { HeartbeatTimer } from "./heartbeat.ts";
 import type { SignalHandler } from "./signals.ts";
@@ -37,6 +38,7 @@ export class Daemon {
     private readonly app: AppLike,
     private readonly client: GrpcClient,
     private readonly signals: SignalHandler,
+    private readonly dispatcher?: Dispatcher,
   ) {}
 
   async run(): Promise<number> {
@@ -115,11 +117,14 @@ export class Daemon {
       }
 
       if (msg.toolCallRequest) {
-        // TODO(I-4): dispatcher integration.
-        // When Dispatcher lands, call: dispatcher.dispatch(msg.toolCallRequest)
-        console.warn(
-          `[vested] tool_call_request received but no dispatcher configured (tool=${msg.toolCallRequest.toolKey})`,
-        );
+        if (this.dispatcher) {
+          this.dispatcher.dispatch(msg.toolCallRequest);
+        } else {
+          // dev-only path; shouldn't happen in supervised use
+          console.warn(
+            `[vested] toolCallRequest received but no dispatcher configured: ${msg.toolCallRequest.toolKey}`,
+          );
+        }
       } else if (msg.heartbeatAck) {
         // no-op
       } else if (msg.goAway) {
