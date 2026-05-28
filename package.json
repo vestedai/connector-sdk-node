@@ -1,0 +1,46 @@
+{
+  "name": "@vested-ai/connector-sdk",
+  "version": "0.2.0",
+  "description": "Official Node.js SDK for the Vested AI ConnectorHub.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "vested-connect": "./dist/cli.js"
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests",
+    "test": "vitest run",
+    "gen-proto": "bash scripts/gen-proto.sh"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.10",
+    "@grpc/grpc-js": "^1.10",
+    "zod": "^3.23",
+    "zod-to-json-schema": "^3.23"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "ts-proto": "^2.0",
+    "tsup": "^8.0",
+    "typescript": "^5.4",
+    "vitest": "^2.0",
+    "eslint": "^9",
+    "@typescript-eslint/parser": "^8",
+    "@typescript-eslint/eslint-plugin": "^8"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/vestedai/connector-sdk-node",
+  "repository": "github:vestedai/connector-sdk-node"
+}
