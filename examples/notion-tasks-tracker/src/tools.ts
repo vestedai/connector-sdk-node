@@ -11,11 +11,7 @@
  *   - static result — Zod schema used by the admin UI to document the output shape
  *   - handle(args: unknown, ctx) — cast args to z.infer<typeof Cls.args> inside
  *
- * The `handle` signature uses `unknown` because ToolHandler is a generic abstract
- * class (TArgs, TResult) and TypeScript's TC39-decorator type checker requires the
- * decorated subclass to be assignment-compatible with the base — a known limitation
- * when TResult is not `unknown` in the return position. The SDK validates args via
- * `static args` before invoking handle, so the cast is safe.
+ * The SDK validates args against `static args` before invoking handle().
  */
 
 import { z } from "zod";
@@ -34,7 +30,6 @@ const StatusEnum = z.enum(["todo", "in_progress", "done", "blocked"]);
 
 // ── tasks.ops.search_tasks ────────────────────────────────────────────────────
 
-// @ts-ignore — ToolHandler generic variance with TC39 decorators; runtime is correct.
 @tool({
   key: "tasks.ops.search_tasks",
   description:
@@ -86,7 +81,6 @@ export class SearchTasks extends ToolHandler {
 
 // ── tasks.ops.update_task_status ──────────────────────────────────────────────
 
-// @ts-ignore — ToolHandler generic variance with TC39 decorators; runtime is correct.
 @tool({
   key: "tasks.ops.update_task_status",
   description:
@@ -142,7 +136,6 @@ export class UpdateTaskStatus extends ToolHandler {
 
 // ── tasks.analytics.workload_summary ─────────────────────────────────────────
 
-// @ts-ignore — ToolHandler generic variance with TC39 decorators; runtime is correct.
 @tool({
   key: "tasks.analytics.workload_summary",
   description:
