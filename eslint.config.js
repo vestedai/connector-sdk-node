@@ -20,7 +20,7 @@ export default [
     rules: {
       ...tseslint.configs["flat/eslint-recommended"]?.[0]?.rules,
       ...tseslint.configs["flat/recommended"]?.[0]?.rules,
-      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
       "@typescript-eslint/no-explicit-any": "warn",
     },
   },
