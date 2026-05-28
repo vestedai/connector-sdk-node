@@ -1,16 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { ConnectorApp } from "../src/app.ts";
 import type { Logger } from "../src/app.ts";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const SCANNER_FIXTURE_URL = new URL(
-  join(__dirname, "fixtures/scanner_app/index.ts"),
-  import.meta.url,
-).href;
+// Trailing slash → directory URL. v0.2.2 scanner walks the dir contents and
+// (since this is not a file URL) does not exclude any "caller" file.
+const SCANNER_FIXTURE_URL = new URL("./fixtures/scanner_app/", import.meta.url).href;
 
 describe("ConnectorApp", () => {
   it("create() returns a fresh instance with empty agents and tools", () => {

@@ -9,22 +9,18 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { pathToFileURL } from "node:url";
-import { join } from "node:path";
 
 import { ConnectorApp } from "../../src/app.ts";
 import { runSupervised } from "../../src/runtime/supervisor.ts";
 import { fakeHub } from "../fixtures/fake-hub.ts";
 
-// Resolve the integration_app fixture directory URL so scanModule can find it.
-const INTEGRATION_APP_DIR = join(
-  new URL(".", import.meta.url).pathname,
-  "../fixtures/integration_app/index.ts",
-);
+// Trailing slash → directory URL. v0.2.2 scanner walks the dir contents
+// without skipping any "caller" file.
+const INTEGRATION_APP_URL = new URL("../fixtures/integration_app/", import.meta.url).href;
 
 async function buildApp(): Promise<ConnectorApp> {
   const app = ConnectorApp.create();
-  await app.scanModule(pathToFileURL(INTEGRATION_APP_DIR).href);
+  await app.scanModule(INTEGRATION_APP_URL);
   return app;
 }
 

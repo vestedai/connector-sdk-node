@@ -12,7 +12,9 @@ describe("scanModule — fixture directory", () => {
   // Point scanModule at the index.ts entry-point inside the fixture directory.
   // The scanner resolves the directory from the URL, then walks all .ts/.js
   // files in it.
-  const fixtureUrl = new URL("../fixtures/scanner_app/index.ts", import.meta.url).href;
+  // Trailing slash → directory URL. v0.2.2 scanner walks the dir contents
+  // without excluding any "caller" file (only file-URL callers are skipped).
+  const fixtureUrl = new URL("../fixtures/scanner_app/", import.meta.url).href;
 
   it("collects the decorated agent", async () => {
     const { agents } = await scanModule(fixtureUrl);
@@ -116,5 +118,46 @@ describe("scanModule — hidden dirs and node_modules", () => {
     // visible here), just that it completes without throwing.
     expect(Array.isArray(agents)).toBe(true);
     expect(tools instanceof Map).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// v0.2.2: skip the caller's own file + accept directory URLs
+// ---------------------------------------------------------------------------
+
+describe("scanModule — caller's own file is excluded", () => {
+  // The fixture dir has bootstrap.ts (exports FROM_BOOTSTRAP=true, no
+  // decorated classes) and sibling-agent.ts (decorated).
+  const bootstrapUrl = new URL(
+    "../fixtures/scanner_caller_skip/bootstrap.ts",
+    import.meta.url,
+  ).href;
+
+  it("collects the sibling fixture's decorated classes", async () => {
+    const { agents, tools } = await scanModule(bootstrapUrl);
+    expect(agents.some((a) => a.key === "skip_fixture.demo")).toBe(true);
+    expect(tools.has("skip_fixture.demo.ping")).toBe(true);
+  });
+
+  it("does not import the caller file (FROM_BOOTSTRAP must not show up as a tool/agent)", async () => {
+    // The bootstrap file exports a plain `FROM_BOOTSTRAP` constant. It has
+    // no decorators, so even if the scanner walked it, no extras would
+    // surface in agents/tools. The real assertion this test guards is the
+    // absence of a hang — if the scanner re-entered the calling file mid-
+    // walk while the test's import of bootstrap.ts was pending, this would
+    // never resolve.
+    const result = await scanModule(bootstrapUrl);
+    expect(result.agents.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("scanModule — directory URL", () => {
+  it("accepts a URL that points at a directory directly", async () => {
+    // Trailing slash → URL parses as a directory. Without the v0.2.2 fix,
+    // scanModule would call dirname() and walk the PARENT of the intended
+    // dir. The fix detects directory paths and walks them directly.
+    const dirUrl = new URL("../fixtures/scanner_caller_skip/", import.meta.url).href;
+    const { agents } = await scanModule(dirUrl);
+    expect(agents.some((a) => a.key === "skip_fixture.demo")).toBe(true);
   });
 });

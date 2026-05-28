@@ -1,6 +1,6 @@
 {
   "name": "@vested-ai/connector-sdk",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "Official Node.js SDK for the Vested AI ConnectorHub.",
   "type": "module",
   "main": "./dist/index.js",

@@ -63,7 +63,21 @@ The following are PHP- or Python-specific implementation details. They are docum
 
 ---
 
-## v0.2.0 Release Notes
+## v0.2.x Release Notes
+
+### v0.2.2 — scanModule recursion + CLI `instanceof` fixes
+
+Two bugs surfaced by the TableTime e2e test customer:
+
+- **`scanModule(import.meta.url)` deadlock.** When `bootstrap.ts` called `scanModule(import.meta.url)` and the bootstrap file lived in the same directory as the agents/tools, the scanner walked its containing directory and re-imported the bootstrap mid-scan. The bootstrap's pending top-level `await scanModule(...)` blocked its own module-evaluation, deadlocking the import graph.
+
+  Fix: `scanModule` now excludes the caller's file from the walk when given a file URL. It also accepts a directory URL (with trailing slash) and walks that directly without the `dirname()` climb.
+
+- **CLI `instanceof ConnectorApp` check fails under tsx.** When the CLI was loaded by Node as plain JS and the bootstrap was loaded through tsx (TypeScript loader), the two ended up with separate references to `ConnectorApp` class — the `instanceof` check rejected a perfectly valid bootstrap.
+
+  Fix: introduced `isConnectorApp(value)` + the global `CONNECTOR_APP_BRAND` symbol (`Symbol.for("vested-ai.connector-sdk.ConnectorApp")`). Brand survives module duplication; the CLI now uses it instead of `instanceof`.
+
+Required upgrade for any customer using `vested-connect worker` under tsx or with the bootstrap-in-same-dir pattern.
 
 ### v0.2.0 — Initial Node.js release
 

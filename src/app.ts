@@ -34,7 +34,27 @@ const defaultLogger: Logger = {
   error: (m, ...a) => console.error(`[vested] ${m}`, ...a),
 };
 
+/**
+ * Cross-realm brand. Survives module duplication that breaks `instanceof`
+ * (e.g. when the CLI is loaded as JS and bootstrap.ts is loaded via a
+ * transpiler that resolves @vested-ai/connector-sdk to a separate copy).
+ * Use `isConnectorApp(x)` to recognise an app regardless of which copy of
+ * the SDK constructed it.
+ */
+export const CONNECTOR_APP_BRAND = Symbol.for("vested-ai.connector-sdk.ConnectorApp");
+
+export function isConnectorApp(value: unknown): value is ConnectorApp {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { [CONNECTOR_APP_BRAND]?: true })[CONNECTOR_APP_BRAND] === true &&
+    typeof (value as { run?: unknown }).run === "function"
+  );
+}
+
 export class ConnectorApp {
+  /** Brand marker for cross-realm identification. */
+  readonly [CONNECTOR_APP_BRAND] = true as const;
   /** @internal — satisfies AppLike */
   agents: AgentDeclaration[] = [];
   /** @internal — satisfies AppLike */

@@ -11,7 +11,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { ConnectorApp } from "./app.ts";
+import { ConnectorApp, isConnectorApp } from "./app.ts";
 
 export async function main(
   argv: string[] = process.argv.slice(2),
@@ -75,14 +75,18 @@ export async function main(
   }
 
   const app = mod.default;
-  if (!(app instanceof ConnectorApp)) {
+  // isConnectorApp brand-checks the value so we survive module duplication
+  // (e.g. cli.js loaded as JS, bootstrap.ts loaded via tsx — they end up with
+  // separate ConnectorApp class references, but the global Symbol.for brand
+  // is identical across copies).
+  if (!isConnectorApp(app)) {
     console.error(
       `bootstrap ${bootstrapPath} must default-export a ConnectorApp instance`,
     );
     return 1;
   }
 
-  return await app.run({ token, hub, insecure });
+  return await (app as ConnectorApp).run({ token, hub, insecure });
 }
 
 // ---------------------------------------------------------------------------

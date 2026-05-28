@@ -9,8 +9,8 @@
  * normally contain `.js` files only.
  */
 
-import { readdir } from "node:fs/promises";
-import { join, dirname, extname } from "node:path";
+import { readdir, stat } from "node:fs/promises";
+import { join, dirname, extname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { AgentDeclaration } from "../agent.ts";
 import type { ToolDeclaration } from "../tool.ts";
@@ -26,15 +26,29 @@ export interface ScanResult {
 }
 
 /**
- * Resolve the directory that contains `importUrl`, walk every `.ts`/`.js`/
- * `.mjs` file, dynamic-import each, and collect decorated agents + tools.
+ * Resolve the directory that contains `importUrl` (or the URL itself if
+ * it already points at a directory), walk every `.ts`/`.js`/`.mjs` file,
+ * dynamic-import each, and collect decorated agents + tools.
  *
- * @param importUrl - A file:// URL (typically `import.meta.url` of the
- *   bootstrap module or a fixture entry point in tests).
+ * The caller's file (typically `bootstrap.ts`) is excluded from the walk
+ * to avoid a re-entrant import while its top-level `await scanModule(...)`
+ * is still pending — that deadlocks the entire module graph.
+ *
+ * @param importUrl - A file:// URL. Accepts either a file URL
+ *   (`import.meta.url` of the bootstrap is the common case) or a directory
+ *   URL (`new URL("./agents/", import.meta.url)`); in the directory form
+ *   we walk that directory directly instead of climbing to its parent.
  */
 export async function scanModule(importUrl: string): Promise<ScanResult> {
-  const dir = dirname(fileURLToPath(importUrl));
-  const files = await collectFiles(dir);
+  const path = fileURLToPath(importUrl);
+  const isDir = await isDirectoryPath(path);
+  const dir = isDir ? path : dirname(path);
+  // When the caller passed their own file URL, exclude that file from the
+  // walk so dynamic-importing it doesn't deadlock against its own pending
+  // top-level await.
+  const callerFile = isDir ? null : resolve(path);
+
+  const files = (await collectFiles(dir)).filter((f) => f !== callerFile);
 
   const agents: AgentDeclaration[] = [];
   const tools = new Map<string, ToolDeclaration>();
@@ -65,6 +79,15 @@ export async function scanModule(importUrl: string): Promise<ScanResult> {
   }
 
   return { agents, tools };
+}
+
+async function isDirectoryPath(p: string): Promise<boolean> {
+  try {
+    const s = await stat(p);
+    return s.isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 async function collectFiles(dir: string): Promise<string[]> {
