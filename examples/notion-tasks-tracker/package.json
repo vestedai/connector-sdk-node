@@ -1,0 +1,22 @@
+{
+  "name": "notion-tasks-tracker-example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "vested-connect worker --bootstrap=./bootstrap.ts"
+  },
+  "dependencies": {
+    "@vested-ai/connector-sdk": "^0.2.0",
+    "zod": "^3.23"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "tsx": "^4.0",
+    "typescript": "^5.4"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
