@@ -106,6 +106,7 @@ import { z } from "zod";
   description: "Returns a single order by ID.",
   defaultDeadlineMs: 5000,             // optional; default 30 000
   maxResultBytes: 65536,               // optional; default 1 MiB
+  sensitivity: "read",                 // optional; see below
 })
 class GetOrder extends ToolHandler {
   static args = z.object({
@@ -121,6 +122,27 @@ class GetOrder extends ToolHandler {
 ```
 
 The input JSON Schema is auto-generated from `static args` via `zod-to-json-schema`. If you need fine-grained control, set `inputSchema` directly on the decorator options instead. Output schema is inferred from `static result` if declared.
+
+### `sensitivity` field
+
+Controls how the hub's policy engine classifies this tool's side-effects.
+
+| Value | Meaning |
+|---|---|
+| `"read"` | Read-only; never mutates data. |
+| `"write"` | Creates or updates data. |
+| `"destructive"` | Irreversibly deletes or overwrites data. |
+| `"external_call"` | Makes a network call to a third-party system. |
+| `"medium"` | General-purpose intermediate severity. |
+
+`sensitivity` is optional. If omitted or empty (`""`), the hub defaults it to `"external_call"`. Admins can override the effective value later from the admin UI regardless of what the connector declares.
+
+A non-empty value that is not in the list above throws an `Error` at decoration time (startup), not at runtime.
+
+```typescript
+import { TOOL_SENSITIVITIES } from "@vested-ai/connector-sdk";
+// TOOL_SENSITIVITIES = ["read", "write", "destructive", "external_call", "medium"]
+```
 
 ---
 

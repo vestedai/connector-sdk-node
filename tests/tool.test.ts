@@ -46,4 +46,38 @@ describe("@tool", () => {
     const decl = readToolDeclaration(Echo)!;
     expect(() => validateArgs(decl, "{}")).toThrow(ToolValidationError);
   });
+
+  it("sensitivity defaults to empty string when not provided", () => {
+    const decl = readToolDeclaration(Echo)!;
+    expect(decl.sensitivity).toBe("");
+  });
+
+  it("stamps sensitivity when provided", () => {
+    @tool({ key: "x.y.destructive_op", description: "destructive", sensitivity: "destructive" })
+    class DestructiveOp extends ToolHandler {
+      static args = z.object({ id: z.string() });
+      async handle(_args: z.infer<typeof DestructiveOp.args>, _ctx: ToolContext) {
+        return {};
+      }
+    }
+    const decl = readToolDeclaration(DestructiveOp)!;
+    expect(decl.sensitivity).toBe("destructive");
+  });
+
+  it("throws at decoration time when sensitivity is invalid", () => {
+    expect(() => {
+      @tool({ key: "x.y.bad_sens", description: "bad sensitivity", sensitivity: "super_dangerous" })
+      class _BadSens extends ToolHandler {
+        static args = z.object({ x: z.string() });
+        async handle() { return {}; }
+      }
+    }).toThrow(/sensitivity must be one of/);
+    expect(() => {
+      @tool({ key: "x.y.bad_sens2", description: "bad sensitivity 2", sensitivity: "super_dangerous" })
+      class _BadSens2 extends ToolHandler {
+        static args = z.object({ x: z.string() });
+        async handle() { return {}; }
+      }
+    }).toThrow(/"super_dangerous"/);
+  });
 });

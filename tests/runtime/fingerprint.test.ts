@@ -16,7 +16,7 @@ function makeAgent(key: string): AgentDeclaration {
   };
 }
 
-function makeTool(key: string): ToolDeclaration {
+function makeTool(key: string, sensitivity = ""): ToolDeclaration {
   return {
     key,
     name: key,
@@ -25,6 +25,7 @@ function makeTool(key: string): ToolDeclaration {
     outputSchema: null,
     defaultDeadlineMs: 30_000,
     maxResultBytes: 1_048_576,
+    sensitivity,
     handlerCtor: class extends (null as unknown as typeof ToolHandler) {
       async handle() {
         return {};
@@ -76,5 +77,14 @@ describe("computeFingerprint", () => {
     const fp = computeFingerprint([], new Map());
     expect(fp).not.toBe("");
     expect(fp).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("differs when tools have different sensitivity values", () => {
+    const agents = [makeAgent("a.agent")];
+    const toolsA = new Map([["a.agent.tool1", makeTool("a.agent.tool1", "read")]]);
+    const toolsB = new Map([["a.agent.tool1", makeTool("a.agent.tool1", "destructive")]]);
+    const fp1 = computeFingerprint(agents, toolsA);
+    const fp2 = computeFingerprint(agents, toolsB);
+    expect(fp1).not.toBe(fp2);
   });
 });

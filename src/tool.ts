@@ -17,16 +17,21 @@ export abstract class ToolHandler<TArgs = unknown, TResult = unknown> {
   abstract handle(args: TArgs, ctx: ToolContext): Promise<TResult>;
 }
 
+export const TOOL_SENSITIVITIES = ["read", "write", "destructive", "external_call", "medium"] as const;
+export type ToolSensitivity = typeof TOOL_SENSITIVITIES[number];
+
 export interface ToolDecl {
   key: string;
   description: string;
   name?: string;
   defaultDeadlineMs?: number;
   maxResultBytes?: number;
+  sensitivity?: string;
 }
 
-export interface ToolDeclaration extends Required<Omit<ToolDecl, "name">> {
+export interface ToolDeclaration extends Required<Omit<ToolDecl, "name" | "sensitivity">> {
   name: string;
+  sensitivity: string;
   inputSchema: Record<string, unknown>;
   outputSchema: Record<string, unknown> | null;
   handlerCtor: new () => ToolHandler;
@@ -43,6 +48,11 @@ export function tool(decl: ToolDecl) {
     if (!argsSchema) {
       throw new Error(`@tool("${decl.key}") class must declare static args = z.object(...)`);
     }
+    if (decl.sensitivity && !(TOOL_SENSITIVITIES as readonly string[]).includes(decl.sensitivity)) {
+      throw new Error(
+        `@tool("${decl.key}") sensitivity must be one of ${TOOL_SENSITIVITIES.join(", ")}; got "${decl.sensitivity}"`
+      );
+    }
     const resultSchema = (target as unknown as { result?: ZodType }).result;
     const normalized: ToolDeclaration = {
       key: decl.key,
@@ -50,6 +60,7 @@ export function tool(decl: ToolDecl) {
       description: decl.description,
       defaultDeadlineMs: decl.defaultDeadlineMs ?? 30_000,
       maxResultBytes: decl.maxResultBytes ?? 1_048_576,
+      sensitivity: decl.sensitivity ?? "",
       inputSchema: zodToJsonSchema(argsSchema) as Record<string, unknown>,
       outputSchema: resultSchema
         ? (zodToJsonSchema(resultSchema) as Record<string, unknown>)

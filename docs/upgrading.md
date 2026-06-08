@@ -63,6 +63,34 @@ The following are PHP- or Python-specific implementation details. They are docum
 
 ---
 
+## v0.3.x Release Notes
+
+### v0.3.0 — Connector-declared tool sensitivity (J-5)
+
+`@tool` gains an optional `sensitivity` field that tells the hub how to classify each tool's side-effects.
+
+```typescript
+@tool({
+  key: "myns.orders.delete",
+  description: "Permanently deletes an order.",
+  sensitivity: "destructive",
+})
+class DeleteOrder extends ToolHandler { ... }
+```
+
+Allowed values: `"read"`, `"write"`, `"destructive"`, `"external_call"`, `"medium"`. Omitting `sensitivity` (or leaving it empty) is valid — the hub defaults it to `"external_call"`. A non-empty value outside the allowed set throws an `Error` at decoration time (startup), not at runtime.
+
+The value is threaded into the wire `ToolDecl.sensitivity` (proto field 8) and included in the baseline fingerprint, so the hub detects sensitivity changes and re-reconciles without a connector restart.
+
+```typescript
+import { TOOL_SENSITIVITIES } from "@vested-ai/connector-sdk";
+// readonly tuple: ["read", "write", "destructive", "external_call", "medium"]
+```
+
+**No breaking changes.** Existing code that omits `sensitivity` continues to work unchanged.
+
+---
+
 ## v0.2.x Release Notes
 
 ### v0.2.2 — scanModule recursion + CLI `instanceof` fixes

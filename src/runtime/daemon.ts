@@ -166,6 +166,7 @@ export class Daemon {
           ),
           defaultDeadlineMs: t.defaultDeadlineMs,
           maxResultBytes: t.maxResultBytes,
+          sensitivity: t.sensitivity,
         }));
 
       return {

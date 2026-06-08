@@ -49,6 +49,7 @@ export function computeFingerprint(
         output_schema: t.outputSchema,
         default_deadline_ms: t.defaultDeadlineMs,
         max_result_bytes: t.maxResultBytes,
+        sensitivity: t.sensitivity,
       })),
   };
 

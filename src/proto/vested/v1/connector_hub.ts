@@ -74,6 +74,13 @@ export interface ToolDecl {
   outputSchemaJson: Uint8Array;
   defaultDeadlineMs: number;
   maxResultBytes: number;
+  /**
+   * Connector-declared tool sensitivity. One of:
+   * "read" | "write" | "destructive" | "external_call" | "medium".
+   * Empty = unset; the hub defaults it to "external_call". Admins can
+   * override the effective value later in the admin UI.
+   */
+  sensitivity: string;
 }
 
 export interface ToolCallResponse {
@@ -810,6 +817,7 @@ function createBaseToolDecl(): ToolDecl {
     outputSchemaJson: new Uint8Array(0),
     defaultDeadlineMs: 0,
     maxResultBytes: 0,
+    sensitivity: "",
   };
 }
 
@@ -835,6 +843,9 @@ export const ToolDecl: MessageFns<ToolDecl> = {
     }
     if (message.maxResultBytes !== 0) {
       writer.uint32(56).uint32(message.maxResultBytes);
+    }
+    if (message.sensitivity !== "") {
+      writer.uint32(66).string(message.sensitivity);
     }
     return writer;
   },
@@ -902,6 +913,14 @@ export const ToolDecl: MessageFns<ToolDecl> = {
           message.maxResultBytes = reader.uint32();
           continue;
         }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.sensitivity = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -936,6 +955,7 @@ export const ToolDecl: MessageFns<ToolDecl> = {
         : isSet(object.max_result_bytes)
         ? globalThis.Number(object.max_result_bytes)
         : 0,
+      sensitivity: isSet(object.sensitivity) ? globalThis.String(object.sensitivity) : "",
     };
   },
 
@@ -962,6 +982,9 @@ export const ToolDecl: MessageFns<ToolDecl> = {
     if (message.maxResultBytes !== 0) {
       obj.maxResultBytes = Math.round(message.maxResultBytes);
     }
+    if (message.sensitivity !== "") {
+      obj.sensitivity = message.sensitivity;
+    }
     return obj;
   },
 
@@ -977,6 +1000,7 @@ export const ToolDecl: MessageFns<ToolDecl> = {
     message.outputSchemaJson = object.outputSchemaJson ?? new Uint8Array(0);
     message.defaultDeadlineMs = object.defaultDeadlineMs ?? 0;
     message.maxResultBytes = object.maxResultBytes ?? 0;
+    message.sensitivity = object.sensitivity ?? "";
     return message;
   },
 };
