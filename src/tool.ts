@@ -9,6 +9,12 @@ export interface ToolContext {
   readonly conversationId: string;
   readonly userEmail?: string;
   readonly userId?: number;
+  /** Caller's employee number in the org's ERP/HR system. Empty string when unset. */
+  readonly employeeNo: string;
+  /** Caller's primary ERP identifier. Empty string when unset. */
+  readonly erpIdentifier: string;
+  /** ERP identifiers of every department the caller belongs to in this org. Empty array when unset. */
+  readonly erpDepartmentIdentifiers: string[];
 }
 
 export abstract class ToolHandler<TArgs = unknown, TResult = unknown> {

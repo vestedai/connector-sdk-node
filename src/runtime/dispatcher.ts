@@ -49,6 +49,9 @@ export class Dispatcher {
       conversationId: req.conversationId ?? "",
       userEmail: req.userEmail ?? "",
       userId: parseInt(req.userId, 10) || 0,
+      employeeNo: req.employeeNo ?? "",
+      erpIdentifier: req.erpIdentifier ?? "",
+      erpDepartmentIdentifiers: req.erpDepartmentIdentifiers ?? [],
     };
 
     try {

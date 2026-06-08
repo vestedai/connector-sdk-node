@@ -65,6 +65,32 @@ The following are PHP- or Python-specific implementation details. They are docum
 
 ---
 
+## v0.4.x Release Notes
+
+### v0.4.0 — ERP identity on ToolContext (L-4)
+
+`ToolContext` gains three ERP/HR identity fields populated from the incoming `ToolCallRequest` (proto fields 10-12):
+
+| Field | Type | Description |
+|---|---|---|
+| `employeeNo` | `string` | Caller's employee number in the org's ERP/HR system. |
+| `erpIdentifier` | `string` | Caller's primary ERP identifier. |
+| `erpDepartmentIdentifiers` | `string[]` | ERP identifiers of every department the caller belongs to in this org. |
+
+All three fields are **always present** (never `undefined`). An empty string or empty array means the hub did not supply the value for this call — treat both as "unset".
+
+```typescript
+async handle(args: MyArgs, ctx: ToolContext) {
+  if (ctx.employeeNo) {
+    // use ctx.employeeNo, ctx.erpIdentifier, ctx.erpDepartmentIdentifiers
+  }
+}
+```
+
+**No breaking changes.** Existing tool handlers that ignore `ctx` continue to work unchanged. If your handler type-checks the ctx shape (e.g. via `satisfies ToolContext`), add the three fields or switch to accepting a `ToolContext` type reference, which now includes them.
+
+---
+
 ## v0.3.x Release Notes
 
 ### v0.3.0 — Connector-declared tool sensitivity (J-5)

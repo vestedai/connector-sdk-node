@@ -18,6 +18,18 @@ class EchoTool extends ToolHandler {
   }
 }
 
+/** Records the ctx it received so tests can assert on it. */
+let lastCtx: ToolContext | undefined;
+
+@tool({ key: "test.ctxrecorder", description: "records ctx" })
+class CtxRecorderTool extends ToolHandler {
+  static args = z.object({});
+  async handle(_args: Record<string, never>, ctx: ToolContext) {
+    lastCtx = ctx;
+    return {};
+  }
+}
+
 @tool({ key: "test.slow", description: "slow" })
 class SlowTool extends ToolHandler {
   static args = z.object({ ms: z.number() });
@@ -197,5 +209,44 @@ describe("Dispatcher", () => {
     // No send because _handle threw before reaching _replyError
     // but the process must not crash — covered by the .catch() in dispatch()
     spy.mockRestore();
+  });
+
+  // ---------------------------------------------------------------------------
+  // ERP identity fields on ToolContext
+  // ---------------------------------------------------------------------------
+
+  it("surfaces employeeNo, erpIdentifier, and erpDepartmentIdentifiers on ctx", async () => {
+    lastCtx = undefined;
+    const client = makeClient();
+    const dispatcher = new Dispatcher(makeTools(CtxRecorderTool), client);
+
+    const req: ToolCallRequest = {
+      ...makeReq("test.ctxrecorder", "{}"),
+      employeeNo: "EMP-001",
+      erpIdentifier: "ERP-XYZ",
+      erpDepartmentIdentifiers: ["DEPT-A", "DEPT-B"],
+    };
+    dispatcher.dispatch(req);
+    await flushPromises();
+
+    expect(client.sent).toHaveLength(1);
+    expect(client.sent[0]?.toolCallResponse?.error).toBeUndefined();
+    expect(lastCtx?.employeeNo).toBe("EMP-001");
+    expect(lastCtx?.erpIdentifier).toBe("ERP-XYZ");
+    expect(lastCtx?.erpDepartmentIdentifiers).toEqual(["DEPT-A", "DEPT-B"]);
+  });
+
+  it("defaults ERP fields to empty string / empty array when absent from the request", async () => {
+    lastCtx = undefined;
+    const client = makeClient();
+    const dispatcher = new Dispatcher(makeTools(CtxRecorderTool), client);
+
+    // makeReq() does not set the ERP fields — they are absent (undefined)
+    dispatcher.dispatch(makeReq("test.ctxrecorder", "{}"));
+    await flushPromises();
+
+    expect(lastCtx?.employeeNo).toBe("");
+    expect(lastCtx?.erpIdentifier).toBe("");
+    expect(lastCtx?.erpDepartmentIdentifiers).toEqual([]);
   });
 });

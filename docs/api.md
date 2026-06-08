@@ -179,6 +179,11 @@ Read-only value object passed to every handler.
 | `userEmail` | `string \| undefined` | Caller's email. Absent for system runs. **PII — do not log or persist.** |
 | `conversationId` | `string` | Conversation this run belongs to. |
 | `agentKey` | `string` | Key of the agent being run. |
+| `employeeNo` | `string` | Caller's employee number in the org's ERP/HR system. Empty string (`""`) when the user has no ERP employee number. |
+| `erpIdentifier` | `string` | Caller's primary ERP identifier. Empty string (`""`) when unset. |
+| `erpDepartmentIdentifiers` | `string[]` | ERP identifiers of every department the caller belongs to in this org. Empty array (`[]`) when the user has no department or none carry an ERP identifier. |
+
+> **Note:** `employeeNo`, `erpIdentifier`, and `erpDepartmentIdentifiers` are always present on the context object (never `undefined`). They are populated from proto fields 10-12 of `ToolCallRequest` (source: `proto/vested/v1/connector_hub.proto`). An empty string or empty array means the hub did not supply the value for this call — treat both as "unset".
 
 ---
 

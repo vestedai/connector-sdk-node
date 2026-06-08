@@ -136,6 +136,17 @@ export interface ToolCallRequest {
   conversationId: string;
   deadlineMs: number;
   userEmail: string;
+  /**
+   * Optional ERP/HR identity of the calling user, so a connector (e.g. an
+   * ERP integration) can resolve who the tool call is on behalf of.
+   * Empty when unset. employee_no + erp_identifier come from the user.
+   * erp_department_identifiers holds the ERP identifier of EACH department
+   * the user belongs to in the run's org (a user can be in several);
+   * empty list when the user has no department or none carry an ERP id.
+   */
+  employeeNo: string;
+  erpIdentifier: string;
+  erpDepartmentIdentifiers: string[];
 }
 
 export interface HeartbeatAck {
@@ -1703,6 +1714,9 @@ function createBaseToolCallRequest(): ToolCallRequest {
     conversationId: "",
     deadlineMs: 0,
     userEmail: "",
+    employeeNo: "",
+    erpIdentifier: "",
+    erpDepartmentIdentifiers: [],
   };
 }
 
@@ -1734,6 +1748,15 @@ export const ToolCallRequest: MessageFns<ToolCallRequest> = {
     }
     if (message.userEmail !== "") {
       writer.uint32(74).string(message.userEmail);
+    }
+    if (message.employeeNo !== "") {
+      writer.uint32(82).string(message.employeeNo);
+    }
+    if (message.erpIdentifier !== "") {
+      writer.uint32(90).string(message.erpIdentifier);
+    }
+    for (const v of message.erpDepartmentIdentifiers) {
+      writer.uint32(98).string(v!);
     }
     return writer;
   },
@@ -1817,6 +1840,30 @@ export const ToolCallRequest: MessageFns<ToolCallRequest> = {
           message.userEmail = reader.string();
           continue;
         }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.employeeNo = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.erpIdentifier = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.erpDepartmentIdentifiers.push(reader.string());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1873,6 +1920,21 @@ export const ToolCallRequest: MessageFns<ToolCallRequest> = {
         : isSet(object.user_email)
         ? globalThis.String(object.user_email)
         : "",
+      employeeNo: isSet(object.employeeNo)
+        ? globalThis.String(object.employeeNo)
+        : isSet(object.employee_no)
+        ? globalThis.String(object.employee_no)
+        : "",
+      erpIdentifier: isSet(object.erpIdentifier)
+        ? globalThis.String(object.erpIdentifier)
+        : isSet(object.erp_identifier)
+        ? globalThis.String(object.erp_identifier)
+        : "",
+      erpDepartmentIdentifiers: globalThis.Array.isArray(object?.erpDepartmentIdentifiers)
+        ? object.erpDepartmentIdentifiers.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.erp_department_identifiers)
+        ? object.erp_department_identifiers.map((e: any) => globalThis.String(e))
+        : [],
     };
   },
 
@@ -1905,6 +1967,15 @@ export const ToolCallRequest: MessageFns<ToolCallRequest> = {
     if (message.userEmail !== "") {
       obj.userEmail = message.userEmail;
     }
+    if (message.employeeNo !== "") {
+      obj.employeeNo = message.employeeNo;
+    }
+    if (message.erpIdentifier !== "") {
+      obj.erpIdentifier = message.erpIdentifier;
+    }
+    if (message.erpDepartmentIdentifiers?.length) {
+      obj.erpDepartmentIdentifiers = message.erpDepartmentIdentifiers;
+    }
     return obj;
   },
 
@@ -1922,6 +1993,9 @@ export const ToolCallRequest: MessageFns<ToolCallRequest> = {
     message.conversationId = object.conversationId ?? "";
     message.deadlineMs = object.deadlineMs ?? 0;
     message.userEmail = object.userEmail ?? "";
+    message.employeeNo = object.employeeNo ?? "";
+    message.erpIdentifier = object.erpIdentifier ?? "";
+    message.erpDepartmentIdentifiers = object.erpDepartmentIdentifiers?.map((e) => e) || [];
     return message;
   },
 };

@@ -136,6 +136,9 @@ export class FakeHub {
           conversationId: "",
           deadlineMs: 30000,
           userEmail: "",
+          employeeNo: "",
+          erpIdentifier: "",
+          erpDepartmentIdentifiers: [],
         },
       });
 
