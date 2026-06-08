@@ -1,5 +1,7 @@
 # Upgrading
 
+> **Other language SDKs:** the connector SDK also ships for [PHP](https://packagist.org/packages/vested-ai/connector-sdk-php) (`vested-ai/connector-sdk-php`), [Python](https://pypi.org/project/vested-connect-sdk/) (`vested-connect-sdk`), and [C# / .NET](https://www.nuget.org/packages/VestedAI.ConnectorSdk) (`VestedAI.ConnectorSdk`) — all at wire parity, including connector-declared tool sensitivity. See the [SDK index](../../README.md).
+
 ## Coming from the PHP or Python SDK
 
 This section maps PHP and Python SDK concepts to their Node.js equivalents for customers evaluating or migrating between the SDKs.

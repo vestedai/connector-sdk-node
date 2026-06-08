@@ -63,4 +63,12 @@ This differs from writing your own LLM client. The connector does not call the L
 
 ## License + Status
 
-MIT. Current release: **v0.2.0** (TypeScript-first, ESM, decorator API, Zod schemas, `@grpc/grpc-js` transport). On [npm](https://www.npmjs.com/package/@vested-ai/connector-sdk) (`npm install @vested-ai/connector-sdk`) (coming soon) and [Docker Hub](https://hub.docker.com/r/vestedai/vested-ai-connector-sdk-node) (coming soon).
+MIT. Current release: **v0.3.0** (TypeScript-first, ESM, decorator API, Zod schemas, `@grpc/grpc-js` transport, connector-declared tool sensitivity). On [npm](https://www.npmjs.com/package/@vested-ai/connector-sdk) (`npm install @vested-ai/connector-sdk`) and [Docker Hub](https://hub.docker.com/r/vestedai/vested-ai-connector-sdk-node).
+
+## Other language SDKs
+
+Same wire protocol, same hub — [all four SDKs](../README.md) are at feature parity (including connector-declared tool sensitivity):
+
+- [PHP](../php/README.md) — Packagist `vested-ai/connector-sdk-php`
+- [Python](../python/README.md) — PyPI `vested-connect-sdk`
+- [C# / .NET](../dotnet/README.md) — NuGet `VestedAI.ConnectorSdk`
