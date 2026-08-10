@@ -10,11 +10,17 @@
 import type { ConnectorMsg, ToolCallRequest } from "../proto/vested/v1/connector_hub.ts";
 import type { ToolContext, ToolDeclaration } from "../tool.ts";
 import { validateArgs } from "../tool.ts";
+import type { CredentialOpener } from "../credential.ts";
+import { CredentialResolver } from "../credential-resolver.ts";
 
 export class Dispatcher {
   constructor(
     private readonly tools: ReadonlyMap<string, ToolDeclaration>,
     private readonly client: { send: (msg: ConnectorMsg) => void },
+    /** Null for connectors that declare no credential schema. */
+    private readonly credentialOpener: CredentialOpener | null = null,
+    /** Lazy: the hub assigns the connector id at HelloAck, after construction. */
+    private readonly connectorId: () => string = () => "",
   ) {}
 
   /** Fire-and-forget: spawns a Promise, does NOT block the caller. */
@@ -42,6 +48,13 @@ export class Dispatcher {
       return;
     }
 
+    const resolver = new CredentialResolver(
+      this.credentialOpener ?? null,
+      req.credentialEnvelopeJson ?? null,
+      this.connectorId,
+      req.userId ?? "",
+    );
+
     const ctx: ToolContext = {
       orgId: parseInt(req.organizationId, 10) || 0,
       agentKey: req.agentKey ?? "",
@@ -52,6 +65,10 @@ export class Dispatcher {
       employeeNo: req.employeeNo ?? "",
       erpIdentifier: req.erpIdentifier ?? "",
       erpDepartmentIdentifiers: req.erpDepartmentIdentifiers ?? [],
+      // Lazy: most tools never read the credential, and one that doesn't ask
+      // should neither pay for a decrypt nor fail because of one.
+      hasCredential: () => resolver.hasCredential(),
+      credential: () => resolver.credential(),
     };
 
     try {

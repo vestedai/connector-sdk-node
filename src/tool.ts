@@ -15,6 +15,25 @@ export interface ToolContext {
   readonly erpIdentifier: string;
   /** ERP identifiers of every department the caller belongs to in this org. Empty array when unset. */
   readonly erpDepartmentIdentifiers: string[];
+
+  /**
+   * True when the platform forwarded a sealed credential for this caller.
+   * False for a connector that declares no credential schema.
+   */
+  hasCredential(): boolean;
+
+  /**
+   * The calling user's credentials for this integration, decrypted.
+   *
+   * The envelope is opened and its identity binding verified inside the SDK,
+   * so a connector author cannot skip the check that makes per-user auth mean
+   * anything: an envelope sealed for another user throws rather than returning
+   * someone else's secrets.
+   *
+   * Throws CredentialUnavailableError when none was forwarded, and
+   * CredentialError when the envelope is not ours to open or is corrupt.
+   */
+  credential(): Record<string, string>;
 }
 
 export abstract class ToolHandler<TArgs = unknown, TResult = unknown> {

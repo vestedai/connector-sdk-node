@@ -253,6 +253,13 @@ export interface ToolCallRequest {
   cursor: string;
   /** requested rows/page; 0 = connector default (ROWSET only) */
   pageSize: number;
+  /**
+   * The calling user's sealed credential, forwarded verbatim. Present only for
+   * connectors that declared a credential_schema; empty for every other
+   * connector, which is what keeps existing integrations ungated. The hub
+   * cannot open it — only the worker's private key can.
+   */
+  credentialEnvelopeJson: Uint8Array;
 }
 
 export interface HeartbeatAck {
@@ -2527,6 +2534,7 @@ function createBaseToolCallRequest(): ToolCallRequest {
     erpDepartmentIdentifiers: [],
     cursor: "",
     pageSize: 0,
+    credentialEnvelopeJson: new Uint8Array(0),
   };
 }
 
@@ -2573,6 +2581,9 @@ export const ToolCallRequest: MessageFns<ToolCallRequest> = {
     }
     if (message.pageSize !== 0) {
       writer.uint32(112).uint32(message.pageSize);
+    }
+    if (message.credentialEnvelopeJson.length !== 0) {
+      writer.uint32(122).bytes(message.credentialEnvelopeJson);
     }
     return writer;
   },
@@ -2696,6 +2707,14 @@ export const ToolCallRequest: MessageFns<ToolCallRequest> = {
           message.pageSize = reader.uint32();
           continue;
         }
+        case 15: {
+          if (tag !== 122) {
+            break;
+          }
+
+          message.credentialEnvelopeJson = reader.bytes();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2773,6 +2792,11 @@ export const ToolCallRequest: MessageFns<ToolCallRequest> = {
         : isSet(object.page_size)
         ? globalThis.Number(object.page_size)
         : 0,
+      credentialEnvelopeJson: isSet(object.credentialEnvelopeJson)
+        ? bytesFromBase64(object.credentialEnvelopeJson)
+        : isSet(object.credential_envelope_json)
+        ? bytesFromBase64(object.credential_envelope_json)
+        : new Uint8Array(0),
     };
   },
 
@@ -2820,6 +2844,9 @@ export const ToolCallRequest: MessageFns<ToolCallRequest> = {
     if (message.pageSize !== 0) {
       obj.pageSize = Math.round(message.pageSize);
     }
+    if (message.credentialEnvelopeJson.length !== 0) {
+      obj.credentialEnvelopeJson = base64FromBytes(message.credentialEnvelopeJson);
+    }
     return obj;
   },
 
@@ -2842,6 +2869,7 @@ export const ToolCallRequest: MessageFns<ToolCallRequest> = {
     message.erpDepartmentIdentifiers = object.erpDepartmentIdentifiers?.map((e) => e) || [];
     message.cursor = object.cursor ?? "";
     message.pageSize = object.pageSize ?? 0;
+    message.credentialEnvelopeJson = object.credentialEnvelopeJson ?? new Uint8Array(0);
     return message;
   },
 };

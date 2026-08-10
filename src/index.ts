@@ -11,4 +11,5 @@ export {
   type CredentialValidation,
   type UserCredentialHandler,
 } from "./credential-handler.ts";
+export { CredentialResolver, CredentialUnavailableError } from "./credential-resolver.ts";
 export const __version__ = "0.4.0";

@@ -144,6 +144,9 @@ export class FakeHub {
           // unwritable frame, and the daemon simply never sees the call.
           cursor: "",
           pageSize: 0,
+          // Slice 5: the caller's sealed credential. Empty here — this fake
+          // connector declares no credential schema, so it is never gated.
+          credentialEnvelopeJson: new Uint8Array(0),
         },
       });
 
