@@ -24,7 +24,10 @@ import type { GrpcClient } from "./grpc-client.ts";
 import { HeartbeatTimer } from "./heartbeat.ts";
 import type { SignalHandler } from "./signals.ts";
 
-export const SDK_VERSION = "0.2.0";
+// Reported in the Hello frame and stored as connectors.current_sdk_version,
+// so the admin UI shows it. MUST track package.json — it had drifted to 0.2.0
+// while the package was 0.4.0, making the operator view actively misleading.
+export const SDK_VERSION = "0.5.0";
 
 export interface AppLike {
   agents: AgentDeclaration[];
