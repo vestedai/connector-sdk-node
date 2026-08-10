@@ -139,6 +139,11 @@ export class FakeHub {
           employeeNo: "",
           erpIdentifier: "",
           erpDepartmentIdentifiers: [],
+          // ROWSET pagination fields, added to the proto after these stubs
+          // were last generated. Omitting them makes encode() emit an
+          // unwritable frame, and the daemon simply never sees the call.
+          cursor: "",
+          pageSize: 0,
         },
       });
 

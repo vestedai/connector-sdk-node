@@ -70,6 +70,11 @@ export class Dispatcher {
         invocationId,
         resultJson: Buffer.from(resultJson, "utf-8"),
         durationMs: 0,
+        // ROWSET pagination fields. This SDK only emits SINGLE results, so
+        // they are the empty/unknown defaults rather than absent — the
+        // generated types require them.
+        nextCursor: "",
+        totalRows: 0,
       },
     };
     this.client.send(msg);
@@ -81,6 +86,8 @@ export class Dispatcher {
         invocationId,
         error: message,
         durationMs: 0,
+        nextCursor: "",
+        totalRows: 0,
       },
     };
     this.client.send(msg);

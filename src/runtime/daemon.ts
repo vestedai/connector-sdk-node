@@ -11,6 +11,7 @@
 
 import { hostname } from "node:os";
 import type { AgentDeclaration } from "../agent.ts";
+import type { CredentialOpDispatcher } from "../credential-handler.ts";
 import { ConnectorError, TokenError } from "../errors.ts";
 import type {
   AgentDecl as WireAgentDecl,
@@ -39,6 +40,8 @@ export class Daemon {
     private readonly client: GrpcClient,
     private readonly signals: SignalHandler,
     private readonly dispatcher?: Dispatcher,
+    /** Absent when the connector declares no per-user credential handler. */
+    private readonly credentialOps?: CredentialOpDispatcher,
   ) {}
 
   async run(): Promise<number> {
@@ -125,6 +128,18 @@ export class Daemon {
             `[vested] toolCallRequest received but no dispatcher configured: ${msg.toolCallRequest.toolKey}`,
           );
         }
+      } else if (msg.credentialOpRequest) {
+        // Answered inline rather than on the worker pool: a credential op is
+        // one call to one system, and the platform is waiting on a bounded
+        // deadline. Silence would make it wait the deadline out.
+        if (this.credentialOps) {
+          const req = msg.credentialOpRequest;
+          void this.credentialOps
+            .dispatch(req)
+            .then((credentialOpResponse) =>
+              this.client.send({ credentialOpResponse } as ConnectorMsg),
+            );
+        }
       } else if (msg.heartbeatAck) {
         // no-op
       } else if (msg.goAway) {
@@ -167,6 +182,9 @@ export class Daemon {
           defaultDeadlineMs: t.defaultDeadlineMs,
           maxResultBytes: t.maxResultBytes,
           sensitivity: t.sensitivity,
+          // SINGLE. This SDK has no PaginatedToolHandler equivalent yet, so
+          // every tool returns one atomic result.
+          resultKind: 0,
         }));
 
       return {
@@ -191,6 +209,10 @@ export class Daemon {
       register: {
         baselineFingerprint,
         agents,
+        // Declared only by connectors that opt into per-user credentials.
+        // Absent means this connector uses no user-scope auth, which is what
+        // hides it from the platform's credential UI entirely.
+        credentialSchema: undefined,
       },
     };
   }
