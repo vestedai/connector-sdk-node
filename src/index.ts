@@ -12,4 +12,4 @@ export {
   type UserCredentialHandler,
 } from "./credential-handler.ts";
 export { CredentialResolver, CredentialUnavailableError } from "./credential-resolver.ts";
-export const __version__ = "0.5.1";
+export const __version__ = "0.5.2";

@@ -27,7 +27,7 @@ import type { SignalHandler } from "./signals.ts";
 // Reported in the Hello frame and stored as connectors.current_sdk_version,
 // so the admin UI shows it. MUST track package.json — it had drifted to 0.2.0
 // while the package was 0.4.0, making the operator view actively misleading.
-export const SDK_VERSION = "0.5.1";
+export const SDK_VERSION = "0.5.2";
 
 export interface AppLike {
   agents: AgentDeclaration[];
