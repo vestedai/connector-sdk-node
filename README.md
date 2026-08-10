@@ -59,6 +59,7 @@ This differs from writing your own LLM client. The connector does not call the L
 | [API reference](docs/api.md) | `ConnectorApp`, `@agent`, `@tool`, `ToolHandler`, `ToolContext` |
 | [Operations](docs/operations.md) | Docker, env vars, observability, reconnect supervisor, Node.js async notes, gotchas |
 | [Upgrading](docs/upgrading.md) | Coming from the PHP or Python SDK; v0.2.0 release notes |
+| [Per-user credentials](docs/credentials.md) | Act on behalf of the calling user: sealed credentials the platform cannot read, validation, key rotation |
 | [Doc index](docs/README.md) | Full table of contents including protocol reference |
 
 ## License + Status
