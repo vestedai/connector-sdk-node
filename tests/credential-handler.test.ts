@@ -15,7 +15,7 @@ import type { CredentialOpRequest } from "../src/proto/vested/v1/connector_hub.t
 
 const fixture = JSON.parse(
   readFileSync(
-    resolve(__dirname, "../../testdata/credential-envelope-vectors.json"),
+    resolve(__dirname, "../testdata/credential-envelope-vectors.json"),
     "utf8",
   ),
 );

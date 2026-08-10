@@ -8,7 +8,7 @@ import { CredentialError, CredentialOpener } from "../src/credential.ts";
 
 const fixture = JSON.parse(
   readFileSync(
-    resolve(__dirname, "../../testdata/credential-envelope-vectors.json"),
+    resolve(__dirname, "../testdata/credential-envelope-vectors.json"),
     "utf8",
   ),
 );
