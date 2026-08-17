@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeFingerprint } from "../../src/runtime/fingerprint.ts";
+import { canonicalJsonFor, computeFingerprint } from "../../src/runtime/fingerprint.ts";
 import type { AgentDeclaration } from "../../src/agent.ts";
 import type { ToolDeclaration } from "../../src/tool.ts";
 import type { ToolHandler } from "../../src/tool.ts";
@@ -86,5 +86,40 @@ describe("computeFingerprint", () => {
     const fp1 = computeFingerprint(agents, toolsA);
     const fp2 = computeFingerprint(agents, toolsB);
     expect(fp1).not.toBe(fp2);
+  });
+});
+
+// Ordinal puts uppercase first and '_' (0x5F) after letters. localeCompare
+// reorders both, and dotnet/python canonicalise this same structure — so a
+// locale sort makes the same declarations hash differently per SDK.
+describe("canonical ordering", () => {
+  const positionsOf = (json: string, keys: string[]) =>
+    keys.map((k) => json.indexOf(`"key":"${k}"`));
+
+  it("sorts agents ordinally, not by locale", () => {
+    const json = canonicalJsonFor(
+      ["erp.data", "erp.data_ops", "erp.dataX", "erp.Data"].map(makeAgent),
+      new Map(),
+    );
+    const positions = positionsOf(json, [
+      "erp.Data",
+      "erp.data",
+      "erp.dataX",
+      "erp.data_ops",
+    ]);
+    expect(positions).not.toContain(-1);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+
+  it("sorts tools ordinally, not by locale", () => {
+    const keys = ["erp.a_b", "erp.aX", "erp.Ab", "erp.ab"];
+    const json = canonicalJsonFor(
+      [makeAgent("erp.data")],
+      new Map(keys.map((k) => [k, makeTool(k)])),
+    );
+    // After "erp.a": 'X'(0x58) < '_'(0x5F) < 'b'(0x62).
+    const positions = positionsOf(json, ["erp.Ab", "erp.aX", "erp.a_b", "erp.ab"]);
+    expect(positions).not.toContain(-1);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
   });
 });

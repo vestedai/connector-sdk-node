@@ -16,13 +16,38 @@ import { createHash } from "node:crypto";
 import type { AgentDeclaration } from "../agent.ts";
 import type { ToolDeclaration } from "../tool.ts";
 
+/**
+ * Ordinal (codepoint) comparison — never localeCompare.
+ *
+ * localeCompare collates: it reorders keys differing by case, or by '_'
+ * against a letter. dotnet and python canonicalise this same structure, so a
+ * locale sort makes identical declarations hash differently per SDK —
+ * measured, two independent swaps on realistic agent keys.
+ */
+const byCodepoint = (a: string, b: string): number =>
+  a < b ? -1 : a > b ? 1 : 0;
+
 export function computeFingerprint(
+  agents: readonly AgentDeclaration[],
+  tools: ReadonlyMap<string, ToolDeclaration>,
+): string {
+  return createHash("sha256")
+    .update(canonicalJsonFor(agents, tools), "utf-8")
+    .digest("hex");
+}
+
+/**
+ * The canonical JSON that computeFingerprint hashes. Exported so tests can
+ * assert ORDERING directly: a hash tells you only that something differs,
+ * never what, and ordering is exactly what diverged between the SDKs.
+ */
+export function canonicalJsonFor(
   agents: readonly AgentDeclaration[],
   tools: ReadonlyMap<string, ToolDeclaration>,
 ): string {
   const canonical = {
     agents: [...agents]
-      .sort((a, b) => a.key.localeCompare(b.key))
+      .sort((a, b) => byCodepoint(a.key, b.key))
       .map((a) => ({
         key: a.key,
         name: a.name || a.key,
@@ -40,7 +65,7 @@ export function computeFingerprint(
           })),
       })),
     tools: [...tools.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
+      .sort(([a], [b]) => byCodepoint(a, b))
       .map(([, t]) => ({
         key: t.key,
         name: t.name,
@@ -53,8 +78,7 @@ export function computeFingerprint(
       })),
   };
 
-  const encoded = canonicalJsonStringify(canonical);
-  return createHash("sha256").update(encoded, "utf-8").digest("hex");
+  return canonicalJsonStringify(canonical);
 }
 
 /**
