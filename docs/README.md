@@ -11,6 +11,8 @@
 
 - [Per-user credentials](credentials.md) — act on behalf of the calling user: sealed credentials the platform cannot read, validation, key rotation
 
+- [Relational schema intelligence](schema.md) — what the platform's schema index gives your agents, and why this SDK cannot declare a source yet
+
 ## Operate
 
 - [Operations](operations.md) — Docker, environment variables, observability, reconnect supervisor, Node.js async notes, troubleshooting
