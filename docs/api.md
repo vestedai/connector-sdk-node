@@ -107,6 +107,7 @@ import { z } from "zod";
   defaultDeadlineMs: 5000,             // optional; default 30 000
   maxResultBytes: 65536,               // optional; default 1 MiB
   sensitivity: "read",                 // optional; see below
+  agents: ["myns.orders", "myns.retail"], // optional; see below
 })
 class GetOrder extends ToolHandler {
   static args = z.object({
@@ -122,6 +123,23 @@ class GetOrder extends ToolHandler {
 ```
 
 The input JSON Schema is auto-generated from `static args` via `zod-to-json-schema`. If you need fine-grained control, set `inputSchema` directly on the decorator options instead. Output schema is inferred from `static result` if declared.
+
+### Binding a tool to agents
+
+By default a tool binds to the agent its key is namespaced under: `myapp.orders.get`
+belongs to agent `myapp.orders`, and nowhere else.
+
+To share one declaration across several agents, name them. The list is
+**authoritative, not additive** — the key's namespace confers nothing once a list
+is present, so a tool may live in one namespace and be callable only from another.
+`"*"` means every agent this connector declares, and cannot be combined with
+explicit keys.
+
+Refused before the worker dials the hub: an agent key this connector does not
+declare, `"*"` mixed with explicit keys, and a tool that neither matches an agent
+namespace nor names any agent (nothing could ever call it). Declaring a list that
+omits the agent named in the tool's own key is *legal* — it is how you say "lives
+here, callable from there" — and logs a startup warning so it is never silent.
 
 ### `sensitivity` field
 
