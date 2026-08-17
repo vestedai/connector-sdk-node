@@ -18,6 +18,7 @@ import type {
   ConnectorMsg,
 } from "../proto/vested/v1/connector_hub.ts";
 import type { ToolDeclaration } from "../tool.ts";
+import { resolveBindings } from "../tool-binding.ts";
 import { computeFingerprint } from "./fingerprint.ts";
 import type { Dispatcher } from "./dispatcher.ts";
 import type { GrpcClient } from "./grpc-client.ts";
@@ -167,13 +168,16 @@ export class Daemon {
       this.app.tools,
     );
 
+    const bound = resolveBindings(this.app.agents, this.app.tools);
+
     const agents: WireAgentDecl[] = this.app.agents.map((agentDecl) => {
       const [provider, , modelName] = splitOnFirst(agentDecl.model, ":");
 
-      const namespacePrefix = agentDecl.key + ".";
-      const tools = [...this.app.tools.entries()]
-        .filter(([key]) => key.startsWith(namespacePrefix))
-        .map(([, t]) => ({
+      // Tools bound to this agent — by namespace prefix, or by the tool's own
+      // agents list. resolveBindings is the single authority; the fingerprint
+      // reads the same resolution, so the two cannot drift.
+      const tools = (bound.get(agentDecl.key) ?? [])
+        .map((t) => ({
           key: t.key,
           name: t.name,
           description: t.description,

@@ -52,11 +52,39 @@ export interface ToolDecl {
   defaultDeadlineMs?: number;
   maxResultBytes?: number;
   sensitivity?: string;
+  /**
+   * Agent keys this tool is bound to. Omitted (the default) keeps the
+   * historical rule: the tool binds to the agent its key is namespaced under,
+   * and nothing changes for a connector that never sets this.
+   *
+   * A NON-EMPTY list is AUTHORITATIVE, not additive — the key's prefix confers
+   * nothing once a list is present, so a tool may live in one namespace and be
+   * callable only from another. Sharing one declaration across agents is the
+   * point: without it, the same behaviour needs a duplicate handler class per
+   * namespace.
+   *
+   * `["*"]` means every agent this connector declares, resolved at Register
+   * time, so an agent added later picks the tool up with no further change. It
+   * cannot be combined with explicit keys.
+   *
+   * Validated at `build()`, before the worker dials the hub: an agent key this
+   * connector does not declare is refused, because it would otherwise bind the
+   * tool to nothing at all, silently.
+   *
+   * @example
+   * ```ts
+   * @tool({ key: "erp.data.run_sql", description: "…",
+   *         agents: ["erp.data", "erp.retail"] })
+   * ```
+   */
+  agents?: string[];
 }
 
-export interface ToolDeclaration extends Required<Omit<ToolDecl, "name" | "sensitivity">> {
+export interface ToolDeclaration
+  extends Required<Omit<ToolDecl, "name" | "sensitivity" | "agents">> {
   name: string;
   sensitivity: string;
+  agents: string[];
   inputSchema: Record<string, unknown>;
   outputSchema: Record<string, unknown> | null;
   handlerCtor: new () => ToolHandler;
@@ -86,6 +114,7 @@ export function tool(decl: ToolDecl) {
       defaultDeadlineMs: decl.defaultDeadlineMs ?? 30_000,
       maxResultBytes: decl.maxResultBytes ?? 1_048_576,
       sensitivity: decl.sensitivity ?? "",
+      agents: decl.agents ?? [],
       inputSchema: zodToJsonSchema(argsSchema) as Record<string, unknown>,
       outputSchema: resultSchema
         ? (zodToJsonSchema(resultSchema) as Record<string, unknown>)

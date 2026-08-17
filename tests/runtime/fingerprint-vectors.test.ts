@@ -59,6 +59,7 @@ function toTool(t: Record<string, any>): ToolDeclaration {
     defaultDeadlineMs: t.default_deadline_ms,
     maxResultBytes: t.max_result_bytes,
     sensitivity: t.sensitivity,
+    agents: t.agents ?? [],
     handlerCtor: class {} as unknown as new () => ToolHandler,
   };
 }

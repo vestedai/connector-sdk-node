@@ -15,6 +15,7 @@
 import { createHash } from "node:crypto";
 import type { AgentDeclaration } from "../agent.ts";
 import type { ToolDeclaration } from "../tool.ts";
+import { resolveBindings } from "../tool-binding.ts";
 
 /**
  * Ordinal (codepoint) comparison — never localeCompare.
@@ -45,6 +46,12 @@ export function canonicalJsonFor(
   agents: readonly AgentDeclaration[],
   tools: ReadonlyMap<string, ToolDeclaration>,
 ): string {
+  // Binding must come from resolveBindings, NOT be re-derived here. The
+  // Register frame uses the same call, and a fingerprint that disagrees with
+  // the frame it summarises would let the hub short-circuit a registration
+  // whose content had in fact changed.
+  const bound = resolveBindings(agents, tools);
+
   const canonical = {
     agents: [...agents]
       .sort((a, b) => byCodepoint(a.key, b.key))
@@ -63,6 +70,11 @@ export function canonicalJsonFor(
             body: i.body,
             format: i.format ?? "markdown",
           })),
+        // Which tools this agent is BOUND to. Without it, re-pointing a tool at
+        // different agents leaves the fingerprint unchanged and the hub never
+        // reconciles the new binding. Safe to omit only while binding was
+        // derived from the tool key — it no longer is.
+        tools: (bound.get(a.key) ?? []).map((t) => t.key),
       })),
     tools: [...tools.entries()]
       .sort(([a], [b]) => byCodepoint(a, b))

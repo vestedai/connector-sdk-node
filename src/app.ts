@@ -17,6 +17,7 @@ import type { AgentDeclaration } from "./agent.ts";
 import type { ToolDeclaration } from "./tool.ts";
 import { scanModule as runtimeScanModule } from "./runtime/scanner.ts";
 import { runSupervised } from "./runtime/supervisor.ts";
+import { validateBindings } from "./tool-binding.ts";
 
 export interface Logger {
   debug(msg: string, ...args: unknown[]): void;
@@ -88,7 +89,12 @@ export class ConnectorApp {
   }
 
   build(): this {
-    // Optional: validate tool key prefixes match agent keys (namespace_violation catch).
+    // Refuses an agent key this connector does not declare, "*" mixed with
+    // explicit keys, and a tool that neither matches an agent namespace nor
+    // names any agent. This used to be a TODO — node did no declaration
+    // validation at all, so a typo surfaced as a tool that silently reached
+    // no agent.
+    validateBindings(this.agents, this.tools, (message) => this.logger.warn(message));
     return this;
   }
 
