@@ -65,6 +65,46 @@ The following are PHP- or Python-specific implementation details. They are docum
 
 ---
 
+## v0.6.0 Release Notes
+
+### v0.6.0 — a tool can declare the agents it binds to
+
+Tools bind to agents by namespace today: `myns.orders.get` belongs to agent `myns.orders` and nowhere else. Sharing behaviour across agents therefore meant duplicating the handler — a second class in a second namespace wrapping the same logic.
+
+A tool can now name the agents it binds to. ```typescript
+@tool({ key: "erp.data.run_sql", description: "…",
+        agents: ["erp.data", "erp.retail"] })
+```
+
+`agents` is optional on `ToolDecl`, so existing decorator call sites are unaffected.
+
+**Omitting it changes nothing.** A connector that never sets it binds exactly the tools it binds today.
+
+**A present list is authoritative, not additive.** The key's namespace confers nothing once a list is present, so a tool may live in one namespace and be callable only from another. ``"*"`` means every agent this connector declares and cannot be combined with explicit keys.
+
+Refused before the worker dials the hub: an agent key this connector does not declare, ``"*"`` mixed with explicit keys, and a tool that neither matches an agent namespace nor names any agent. Declaring a list that omits the agent named in the tool's own key is legal — it is how you say "lives here, callable from there" — and logs a startup warning.
+
+### v0.6.0 — the baseline fingerprint now covers agent→tool binding
+
+**Behavioural, not source-breaking. Every connector re-registers once.**
+
+`baseline_fingerprint` did not cover which agents a tool was bound to. That was safe only while binding was *derived* from the tool key — you could not change one without changing the other. With an explicit binding field, re-pointing a tool at different agents would have produced an identical fingerprint, and the hub would have short-circuited the registration as unchanged. Nothing would error; the change simply would not happen.
+
+Each agent's canonical entry now carries its bound tool keys, so your connector's fingerprint changes once on upgrade even if you never use the new field. The re-registration produces **no draft** for review unless an agent's actual tool set changed.
+
+### v0.6.0 — two cross-SDK fingerprint divergences fixed
+
+Found while adding the above, and fixed in the same release. .NET, Node and Python canonicalise the same structure and are meant to agree; nothing checked that they did.
+
+- **Sort comparer.** Node used `localeCompare`, .NET a bare `OrderBy` (`Comparer<string>.Default` is `CurrentCulture`), Python ordinal `sorted()`. Measured on realistic agent keys, ordinal and locale disagree on two independent pairs — so keys differing by case, or by `_` against a letter, already hashed differently per SDK. All three are now ordinal.
+- **`model_config`.** .NET emitted `null` where Node and Python emit `{}`, which made .NET's fingerprint differ from both for *every* declaration set that has ever existed. .NET now emits `{}`.
+
+Both are pinned by `vested-ai-sdks/testdata/fingerprint-vectors.json`, a shared fixture the three SDKs assert against.
+
+Intended git tag: `v0.6.0` (on the public mirror repo).
+
+---
+
 ## v0.4.x Release Notes
 
 ### v0.4.0 — ERP identity on ToolContext (L-4)
