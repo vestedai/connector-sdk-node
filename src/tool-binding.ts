@@ -134,3 +134,55 @@ export function validateBindings(
     }
   }
 }
+
+/**
+ * Refuses a binding the hub would reject for exceeding `max_tools_per_agent`,
+ * naming the agent.
+ *
+ * NOT callable from build(), and that is not an oversight: the limit is
+ * per-connector and arrives in HelloAck (proto field 5), which the hub sends
+ * only after the worker dials it. This runs at the one point where the limit is
+ * known and the frame is not yet sent — between HelloAck and Register.
+ *
+ * Worth checking even though the hub rejects anyway: a rejected Register leaves
+ * the hub holding a stream with NO declaration for the connector, and both the
+ * schema gate and the credential gate then refuse every call — reported as
+ * `lookup_failed`, whose message is "try again shortly", advice that can never
+ * work when the cause is a permanent validation failure. Measured on erp_bc
+ * 2026-08-18: one agent went from 30 tools to 31 when a shared tool was bound
+ * with "*", and that single tool cost ~1 hour of refusals across BOTH gates.
+ *
+ * The hub reports the offender as `agents[5].tools` — an index into the wire
+ * frame. This names the agent, and names the shared tools when any contributed.
+ *
+ * `maxToolsPerAgent` of 0 MEANS UNKNOWN and is skipped: proto3 defaults a
+ * uint32 to 0 and an older hub sends no value, so treating 0 as a real ceiling
+ * would ground every connector against a hub that never set one.
+ */
+export function validateHubLimits(
+  bound: ReadonlyMap<string, ToolDeclaration[]>,
+  maxToolsPerAgent: number,
+): void {
+  if (!maxToolsPerAgent) return;
+
+  for (const [agentKey, tools] of bound) {
+    if (tools.length <= maxToolsPerAgent) continue;
+
+    const shared = tools
+      .filter((t) => (t.agents ?? []).length > 0)
+      .map((t) => t.key)
+      .sort(byCodepoint);
+
+    const because = shared.length
+      ? ` Bound across agents by their own declaration: ${shared.join(", ")}. ` +
+        `A tool bound with "*" lands on every agent, including this one.`
+      : "";
+
+    throw new Error(
+      `Agent "${agentKey}" would declare ${tools.length} tools; this connector's ` +
+        `hub limit is ${maxToolsPerAgent}. The hub would refuse the whole Register, ` +
+        `leaving it with no declaration for this connector — which makes both the ` +
+        `schema gate and the credential gate refuse every call.${because}`,
+    );
+  }
+}

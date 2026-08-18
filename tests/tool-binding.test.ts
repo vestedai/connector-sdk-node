@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveBindings, validateBindings } from "../src/tool-binding.ts";
+import { resolveBindings, validateBindings, validateHubLimits } from "../src/tool-binding.ts";
 import type { AgentDeclaration } from "../src/agent.ts";
 import type { ToolDeclaration, ToolHandler } from "../src/tool.ts";
 
@@ -138,5 +138,42 @@ describe("tool binding", () => {
     expect(() =>
       validateBindings([agent("erp.data")], map(tool("erp.shared.orphan")), () => {}),
     ).toThrow(/erp\.shared\.orphan/);
+  });
+});
+
+// Learned the hard way on 2026-08-18: `agents: ["*"]` on erp_bc's run_sql
+// pushed ONE agent from 30 tools to 31, one over that connector's limit, so the
+// hub rejected the whole Register — and with no declaration, BOTH the schema
+// gate and the credential gate refused every call for ~1 hour.
+describe("hub limits", () => {
+  const bind = (agents: string[], tools: ToolDeclaration[]) =>
+    resolveBindings(agents.map(agent), new Map(tools.map((t) => [t.key, t])));
+
+  it("does not throw under or exactly at the limit", () => {
+    const bound = bind(["erp.data"], [tool("erp.data.a"), tool("erp.data.b")]);
+    expect(() => validateHubLimits(bound, 3)).not.toThrow();
+    // The hub refuses 31 against 30, so the limit itself is allowed. Off-by-one
+    // here would ground a connector the hub accepts.
+    expect(() => validateHubLimits(bound, 2)).not.toThrow();
+  });
+
+  it("throws over the limit, naming the agent and both counts", () => {
+    const bound = bind(["erp.data"], [tool("erp.data.a"), tool("erp.data.b"), tool("erp.data.c")]);
+    expect(() => validateHubLimits(bound, 2)).toThrow(/erp\.data.*3 tools.*limit is 2/s);
+  });
+
+  it("names the shared tool when one contributed", () => {
+    const bound = bind(
+      ["erp.data", "erp.retail"],
+      [tool("erp.retail.a"), tool("erp.retail.b"), tool("erp.shared.run_sql", ["*"])],
+    );
+    expect(() => validateHubLimits(bound, 2)).toThrow(/erp\.shared\.run_sql/);
+  });
+
+  it("treats 0 as unknown and does not throw", () => {
+    // proto3 defaults uint32 to 0 and an older hub sends nothing; reading that
+    // as a real ceiling would ground every connector — this check inverted.
+    const bound = bind(["erp.data"], [tool("erp.data.a"), tool("erp.data.b")]);
+    expect(() => validateHubLimits(bound, 0)).not.toThrow();
   });
 });

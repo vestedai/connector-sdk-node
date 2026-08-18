@@ -18,7 +18,7 @@ import type {
   ConnectorMsg,
 } from "../proto/vested/v1/connector_hub.ts";
 import type { ToolDeclaration } from "../tool.ts";
-import { resolveBindings } from "../tool-binding.ts";
+import { resolveBindings, validateHubLimits } from "../tool-binding.ts";
 import { computeFingerprint } from "./fingerprint.ts";
 import type { Dispatcher } from "./dispatcher.ts";
 import type { GrpcClient } from "./grpc-client.ts";
@@ -71,7 +71,9 @@ export class Daemon {
       );
 
       // 3. Register
-      const registerMsg = this._buildRegister();
+      // The limit reaches the frame builder from HelloAck — the earliest it
+      // is knowable, since it is per-connector and sent only after dialling.
+      const registerMsg = this._buildRegister(ack.maxToolsPerAgent ?? 0);
       this.client.send(registerMsg);
 
       // 4. RegisterAck
@@ -159,7 +161,7 @@ export class Daemon {
     return 0;
   }
 
-  private _buildRegister(): ConnectorMsg {
+  private _buildRegister(maxToolsPerAgent = 0): ConnectorMsg {
     // CRITICAL: baseline_fingerprint MUST be non-empty — the hub's in-memory
     // store starts at "" so an empty fingerprint short-circuits "accepted"
     // without ever reconciling to Laravel. See runtime/fingerprint.ts.
@@ -169,6 +171,10 @@ export class Daemon {
     );
 
     const bound = resolveBindings(this.app.agents, this.app.tools);
+
+    // Refuse a frame the hub would reject anyway, but name the agent rather
+    // than leave the developer mapping `agents[5].tools` back from an index.
+    validateHubLimits(bound, maxToolsPerAgent);
 
     const agents: WireAgentDecl[] = this.app.agents.map((agentDecl) => {
       const [provider, , modelName] = splitOnFirst(agentDecl.model, ":");
