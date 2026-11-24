@@ -39,7 +39,24 @@ export class GrpcClient {
     const creds = this.insecure
       ? grpc.credentials.createInsecure()
       : grpc.credentials.createSsl();
-    const client = new GrpcConnectorHubClient(`${this.host}:${this.port}`, creds);
+    const client = new GrpcConnectorHubClient(`${this.host}:${this.port}`, creds, {
+      // HTTP/2 keepalive PINGs (30 s / 10 s). Without them a half-open
+      // socket — peer died without FIN/RST: relay restart, WireGuard
+      // rekey, network partition — is invisible to grpc-js forever:
+      // stream.write() keeps buffering, stream.Recv() never settles, the
+      // daemon's recv() parks until process end, and the connector sits
+      // "unavailable" until its pod is restarted. permit_without_calls is
+      // REQUIRED: in steady state the Connect stream has no in-flight
+      // unary calls, and gRPC otherwise suppresses keepalive PINGs while
+      // no call is pending. On a dead socket the PING times out, the
+      // channel drops to TRANSIENT_FAILURE, the stream errors, and the
+      // supervisor reconnects. (Same failure class the PHP SDK hit in
+      // 2026-11-24; the PHP side has no equivalent channel option, so it
+      // enforces liveness at the application layer instead.)
+      "grpc.keepalive_time_ms": 30_000,
+      "grpc.keepalive_timeout_ms": 10_000,
+      "grpc.keepalive_permit_without_calls": 1,
+    });
     const metadata = new grpc.Metadata();
     metadata.set("x-connector-token", this.token);
     this.stream = client.connect(metadata);
